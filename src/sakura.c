@@ -314,6 +314,8 @@ static struct {
 	gint add_tab_accelerator;
 	gint del_tab_accelerator;
 	gint switch_tab_accelerator;
+	gint next_tab_accelerator;
+	gint prev_tab_accelerator;
 	gint move_tab_accelerator;
 	gint copy_accelerator;
 	gint scrollbar_accelerator;
@@ -377,6 +379,8 @@ struct sakura_tab {
 #define DEFAULT_ADD_TAB_ACCELERATOR  (GDK_CONTROL_MASK|GDK_SHIFT_MASK)
 #define DEFAULT_DEL_TAB_ACCELERATOR  (GDK_CONTROL_MASK|GDK_SHIFT_MASK)
 #define DEFAULT_SWITCH_TAB_ACCELERATOR  (GDK_MOD1_MASK)
+#define DEFAULT_NEXT_TAB_ACCELERATOR  (GDK_MOD1_MASK)
+#define DEFAULT_PREV_TAB_ACCELERATOR  (GDK_MOD1_MASK)
 #define DEFAULT_MOVE_TAB_ACCELERATOR (GDK_MOD1_MASK|GDK_SHIFT_MASK)
 #define DEFAULT_COPY_ACCELERATOR  (GDK_CONTROL_MASK|GDK_SHIFT_MASK)
 #define DEFAULT_SCROLLBAR_ACCELERATOR  (GDK_CONTROL_MASK|GDK_SHIFT_MASK)
@@ -601,11 +605,30 @@ sakura_key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 		return TRUE;
 	}
 
-	/* Switch tab keybinding pressed (numbers or next/prev) */
-	//if ((event->state & accel_mask) == sakura.switch_tab_accelerator) {
-	 /* If we use accel_mask, GDK_MOD4_MASK (windows key) it's not detected... */
-        if ((event->state & sakura.switch_tab_accelerator) == sakura.switch_tab_accelerator) {
+	/* Switch tab keybinding pressed (prev tab) */
+	/* Just propagate the event if there is only one tab */
+	if ((npages >= 2) && ((event->state & accel_mask) == sakura.prev_tab_accelerator) && (keycode == sakura_tokeycode(sakura.prev_tab_key))) {
+		if (gtk_notebook_get_current_page(GTK_NOTEBOOK(sakura.notebook))==0) {
+			gtk_notebook_set_current_page(GTK_NOTEBOOK(sakura.notebook), npages-1);
+		} else {
+			gtk_notebook_prev_page(GTK_NOTEBOOK(sakura.notebook));
+		}
+		return TRUE;
+	}
 
+	/* Switch tab keybinding pressed (next tab) */
+	/* Just propagate the event if there is only one tab */
+	if ((npages >= 2) && ((event->state & accel_mask) == sakura.next_tab_accelerator) && keycode == sakura_tokeycode(sakura.next_tab_key)) {
+		if (gtk_notebook_get_current_page(GTK_NOTEBOOK(sakura.notebook)) == (npages-1)) {
+			gtk_notebook_set_current_page(GTK_NOTEBOOK(sakura.notebook), 0);
+		} else {
+			gtk_notebook_next_page(GTK_NOTEBOOK(sakura.notebook));
+		}
+		return TRUE;
+	}
+
+	/* Switch tab keybinding pressed (numbers) */
+	if ((event->state & accel_mask) == sakura.switch_tab_accelerator) {
 		/* Just propagate the event if there is only one tab */
 		if (npages >= 2) {
 			if ((keycode >= sakura_tokeycode(GDK_KEY_1)) && (keycode <= sakura_tokeycode( GDK_KEY_9))) {
@@ -2136,6 +2159,16 @@ sakura_init()
 		sakura_set_config_integer("switch_tab_accelerator", DEFAULT_SWITCH_TAB_ACCELERATOR);
 	}
 	sakura.switch_tab_accelerator = g_key_file_get_integer(sakura.cfg, cfg_group, "switch_tab_accelerator", NULL);
+
+	if (!g_key_file_has_key(sakura.cfg, cfg_group, "next_tab_accelerator", NULL)) {
+		sakura_set_config_integer("next_tab_accelerator", DEFAULT_NEXT_TAB_ACCELERATOR);
+	}
+	sakura.next_tab_accelerator = g_key_file_get_integer(sakura.cfg, cfg_group, "next_tab_accelerator", NULL);
+
+	if (!g_key_file_has_key(sakura.cfg, cfg_group, "prev_tab_accelerator", NULL)) {
+		sakura_set_config_integer("prev_tab_accelerator", DEFAULT_PREV_TAB_ACCELERATOR);
+	}
+	sakura.prev_tab_accelerator = g_key_file_get_integer(sakura.cfg, cfg_group, "prev_tab_accelerator", NULL);
 
 	if (!g_key_file_has_key(sakura.cfg, cfg_group, "move_tab_accelerator", NULL)) {
 		sakura_set_config_integer("move_tab_accelerator", DEFAULT_MOVE_TAB_ACCELERATOR);
